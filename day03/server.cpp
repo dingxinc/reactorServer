@@ -5,10 +5,10 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <errno.h>
-#include <arpa/inet.h>
 #include <sys/fcntl.h>
 #include <sys/epoll.h>
 #include <netinet/tcp.h>  // TCP_NODELAY 需要包含这个头文件
+#include "InetAddress.h"
 
 int main(int argc, char* argv[]) {
     if (argc != 3) {
@@ -32,12 +32,13 @@ int main(int argc, char* argv[]) {
     setsockopt(listenfd, SOL_SOCKET, SO_KEEPALIVE, &opt, static_cast<socklen_t>(sizeof(opt)));   // 建议自己实现心跳机制
 
     // 绑定、监听
-    struct sockaddr_in servaddr;
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = inet_addr(argv[1]);
-    servaddr.sin_port = htons(atoi(argv[2]));
+    /** struct sockaddr_in servsock;
+    servsock.sin_family = AF_INET;
+    servsock.sin_addr.s_addr = inet_addr(argv[1]);
+    servsock.sin_port = htons(atoi(argv[2])); **/
+    InetAddress servaddr(argv[1], atoi(argv[2]));
 
-    if (bind(listenfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) < 0) {
+    if (bind(listenfd, servaddr.addr(), sizeof(sockaddr)) < 0) {
         perror("bind() error"); return -1;
     }
 
@@ -75,11 +76,13 @@ int main(int argc, char* argv[]) {
             } else if (evs[i].events & (EPOLLIN | EPOLLPRI)) {   // 接收缓冲区中有数据可以读
 
                 if (evs[i].data.fd == listenfd) {   // 有客户端建立连接
-                    struct sockaddr_in clientaddr;
-                    socklen_t len = sizeof(clientaddr);
-                    int clientfd = accept4(listenfd, (struct sockaddr*)&clientaddr, &len, SOCK_NONBLOCK);
+                    struct sockaddr_in peeraddr;
+                    socklen_t len = sizeof(peeraddr);
+                    int clientfd = accept4(listenfd, (struct sockaddr*)&peeraddr, &len, SOCK_NONBLOCK);
 
-                    printf("accept client (fd=%d, ip=%s, port=%d) ok.\n", clientfd, inet_ntoa(clientaddr.sin_addr), ntohs(clientaddr.sin_port));
+                    InetAddress clientaddr(peeraddr);
+
+                    printf("accept client (fd=%d, ip=%s, port=%d) ok.\n", clientfd, clientaddr.ip(), clientaddr.port());
 
                     // 为新客户端连接准备读事件，并加入到 epoll 中
                     ev.data.fd = clientfd;
