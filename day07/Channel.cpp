@@ -49,14 +49,14 @@ void Channel::handleevent(Socket *servsock) {
 
         if (islisten_ == true) {   // 有客户端建立连接
 
-        InetAddress clientaddr;
-        Socket* clientsock = new Socket(servsock->accept(clientaddr));
+            InetAddress clientaddr;
+            Socket* clientsock = new Socket(servsock->accept(clientaddr));
 
-        printf("accept client (fd=%d, ip=%s, port=%d) ok.\n", clientsock->fd(), clientaddr.ip(), clientaddr.port());
+            printf("accept client (fd=%d, ip=%s, port=%d) ok.\n", clientsock->fd(), clientaddr.ip(), clientaddr.port());
 
-        Channel *clientchannel = new Channel(ep_, clientsock->fd(), false);
-        clientchannel->useet();                  // 客户端采用边缘触发
-        clientchannel->enablereading();
+            Channel *clientchannel = new Channel(ep_, clientsock->fd(), false);
+            clientchannel->useet();                  // 客户端采用边缘触发
+            clientchannel->enablereading();
 
         } else {  // 连接的客户端 fd 有事件可读
             char buf[1024];
@@ -75,7 +75,7 @@ void Channel::handleevent(Socket *servsock) {
                     close(fd_);
                     break;
                 }
-             }
+            }
         }
     } else if (revents_ & EPOLLOUT) {               // 有数据需要写，暂时不管
         // TODO
